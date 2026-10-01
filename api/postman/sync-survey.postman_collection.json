@@ -1,0 +1,308 @@
+{
+  "info": {
+    "name": "POST /sync-survey - duplicate localId & idempotency",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "token",
+      "value": "test-token"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.collectionVariables.set('devA','ankit_'+Date.now());",
+          "pm.collectionVariables.set('devB','pooja_'+Date.now());"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Ankit syncs School_1 -> 201 created",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('201',()=>pm.response.to.have.status(201));",
+              "const r=pm.response.json().results[0];",
+              "pm.test('created',()=>pm.expect(r.status).to.eql('created'));",
+              "pm.collectionVariables.set('ankitServerId',r.serverId);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"deviceId\":\"{{devA}}\",\"surveys\":[{\"localId\":\"School_1\",\"createdAt\":\"2026-09-30T10:00:00+05:30\",\"entity\":{\"type\":\"school\",\"name\":\"Govt Primary School\"},\"answers\":{\"q_1\":\"Ankit\"}}]}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sync-survey",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sync-survey"
+          ]
+        }
+      }
+    },
+    {
+      "name": "2. Pooja syncs SAME localId School_1 -> separate record",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const r=pm.response.json().results[0];",
+              "pm.test('201',()=>pm.response.to.have.status(201));",
+              "pm.test('different serverId (no overwrite)',()=>pm.expect(r.serverId).to.not.eql(pm.collectionVariables.get('ankitServerId')));",
+              "pm.test('flagged as possible duplicate school',()=>pm.expect(r.possibleDuplicateOf).to.include(pm.collectionVariables.get('ankitServerId')));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"deviceId\":\"{{devB}}\",\"surveys\":[{\"localId\":\"School_1\",\"createdAt\":\"2026-09-30T10:00:00+05:30\",\"entity\":{\"type\":\"school\",\"name\":\"Govt Primary School\"},\"answers\":{\"q_1\":\"Pooja\"}}]}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sync-survey",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sync-survey"
+          ]
+        }
+      }
+    },
+    {
+      "name": "3. GET Ankit's record -> still Ankit's data",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('untouched',()=>pm.expect(pm.response.json().answers.q_1).to.eql('Ankit'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/surveys/{{ankitServerId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "surveys",
+            "{{ankitServerId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "4. Ankit retries identical payload -> idempotent 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const r=pm.response.json().results[0];",
+              "pm.test('200',()=>pm.response.to.have.status(200));",
+              "pm.test('replayed same serverId',()=>{pm.expect(r.status).to.eql('duplicate_replayed');pm.expect(r.serverId).to.eql(pm.collectionVariables.get('ankitServerId'));});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"deviceId\":\"{{devA}}\",\"surveys\":[{\"localId\":\"School_1\",\"createdAt\":\"2026-09-30T10:00:00+05:30\",\"entity\":{\"type\":\"school\",\"name\":\"Govt Primary School\"},\"answers\":{\"q_1\":\"Ankit\"}}]}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sync-survey",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sync-survey"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5. Ankit reuses localId with different data -> 207 conflict",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('207',()=>pm.response.to.have.status(207));",
+              "pm.test('conflict',()=>pm.expect(pm.response.json().results[0].status).to.eql('conflict'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"deviceId\":\"{{devA}}\",\"surveys\":[{\"localId\":\"School_1\",\"createdAt\":\"2026-09-30T10:00:00+05:30\",\"entity\":{\"type\":\"school\",\"name\":\"Govt Primary School\"},\"answers\":{\"q_1\":\"TAMPERED\"}}]}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sync-survey",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sync-survey"
+          ]
+        }
+      }
+    },
+    {
+      "name": "6. No auth -> 401",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('401',()=>pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"deviceId\":\"{{devA}}\",\"surveys\":[{\"localId\":\"School_1\",\"createdAt\":\"2026-09-30T10:00:00+05:30\",\"entity\":{\"type\":\"school\",\"name\":\"Govt Primary School\"},\"answers\":{}}]}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sync-survey",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sync-survey"
+          ]
+        }
+      }
+    },
+    {
+      "name": "7. Malformed body -> 400",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('400',()=>pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"deviceId\":"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sync-survey",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sync-survey"
+          ]
+        }
+      }
+    }
+  ]
+}

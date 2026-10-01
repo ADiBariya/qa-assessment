@@ -1,0 +1,43 @@
+ID,Category,Rule under test,Input,Expected,Notes
+HFC-P-01,Positive,Age<15 AND Education=College,Age=12 Edu=College,Rule fires -> re-ask + flag,Basic hit
+HFC-P-02,Positive,Sleep Well=Yes AND Hours<6,Yes + 4h,Rule fires,Basic hit
+HFC-P-03,Positive,match=any (OR),Age=12 Edu=Primary,Fires,OR semantics
+HFC-N-01,Negative,Age<15 AND College,Age=30 College,No fire,One condition false
+HFC-N-02,Negative,Age<15 AND College,Age=12 Primary,No fire,Other condition false
+HFC-N-03,Negative,Sleep,No + 4h,No fire,AND must not degrade to OR
+HFC-N-04,Negative,match=any,Age=40 Edu=Primary,No fire,All false
+HFC-B-01,Boundary,Age<15,Age=15,No fire,Strict less-than
+HFC-B-02,Boundary,Age<15,Age=14,Fires,Off-by-one
+HFC-B-03,Boundary,Hours<6,Hours=6,No fire,Strict
+HFC-B-04,Boundary,Hours<6,Hours=5.99,Fires,Decimals
+HFC-B-05,Boundary,Age<15,Age=0,Fires,Zero is a value not blank
+HFC-B-06,Boundary,Hours<6,Hours=0,Fires,Falsy-zero trap
+HFC-B-07,Boundary,Range 0-24 + HFC,Hours=24 / 25 / -1,24 ok; 25 and -1 blocked by validation BEFORE HFC,Layer ordering
+HFC-E-01,Edge,Type coercion,Age='12' (string),Fires numerically,Number vs string
+HFC-E-02,Edge,Lexicographic trap,Age='9' vs 15,Fires (9<15),'9'>'15' as strings
+HFC-E-03,Edge,Case/whitespace,Edu=' college ',Fires,Option matching
+HFC-E-04,Edge,Missing data,Age unanswered,No fire,Blank must not equal 0
+HFC-E-05,Edge,Empty string,Age='',No fire,
+HFC-E-06,Edge,Non-numeric,Age='abc',No fire; no crash,
+HFC-E-07,Edge,Empty logic[],No conditions,Never fires,Vacuous truth trap
+HFC-E-08,Edge,Hidden question stale answer,Sleep hours answered then parent flipped to hide it,Hidden answer treated as unanswered,SCH-02
+HFC-E-09,Edge,Localized option label,Edu answered in Hindi,Rule matches option VALUE not translated label,Compare stored value
+HFC-E-10,Edge,Editing an earlier answer,Change Age after HFC accepted,Rule re-evaluated; stale flag handled,Flags recomputed or documented
+HFC-E-11,Edge,Roster row,Age in row 3 of household roster,Rule evaluated per row; flag names the row,Repeat contexts
+HFC-A-01,Loop safety,reask_and_flag,Same bad value 10 times,Re-ask max N (3) then accept+flag,No infinite loop
+HFC-A-02,Loop safety,reask_and_flag,Correct on 2nd try,Pass; flag still recorded,Always flag
+HFC-A-03,Action,reask_once,Bad twice,1 re-ask then accept+flag,
+HFC-A-04,Action,reask_once,Bad then corrected,Pass; no flag,
+HFC-A-05,Action,flag_silently,Bad value,No prompt; flag stored,
+HFC-A-06,Loop safety,block,Bad value repeatedly,Blocks; after N attempts supervisor override offered,No dead end
+HFC-A-07,State,Counter reset,Bad -> good -> bad,Fresh re-ask cycle,
+HFC-A-08,State,Two rules,Independent counters,No cross-talk,
+HFC-A-09,State,Duplicate flags,5 evaluations,1 flag,De-dup
+HFC-A-10,State,App killed on re-ask screen,Kill + relaunch,Attempt state restored or safely reset; user not trapped,Process death
+HFC-A-11,UI,Back button on re-ask dialog,Press back,Returns to question; no double flag,
+HFC-A-12,UI,Rotation/language change during dialog,Rotate,Dialog persists,
+HFC-A-13,Data,Flags in synced payload,Submit with flag,show_sup flag reaches server/supervisor review,End-to-end
+HFC-S-01,Schema,Typo key questioID,Rule from BUG-002,Fail loud (SchemaError),
+HFC-S-02,Schema,Unknown op/action,Rule with op '~~',Fail loud at load not at runtime,
+HFC-S-03,Schema,Unreachable rule,Rule needing q_2=Yes on a question visible only if q_2=No,Lint error,BUG-004
+HFC-S-04,Perf,200 rules on one screen,Budget phone,Evaluation <50ms; no jank,

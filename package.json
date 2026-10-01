@@ -1,0 +1,17 @@
+{
+  "name": "qa-assessment",
+  "version": "1.0.0",
+  "private": true,
+  "description": "QA Engineer take-home: CAPI survey builder + offline-first Android app",
+  "scripts": {
+    "test:api": "node --test \"api/tests/*.test.js\"",
+    "test:engine": "node --test \"engine/tests/*.test.js\"",
+    "pretest:web": "",
+    "test:web": "playwright test -c web/playwright.config.js",
+    "lint:schema": "node engine/schema-lint.js schema/sample-survey-schema.fixed.json",
+    "lint:schema:original": "node engine/schema-lint.js schema/original.sample-survey-schema.json",
+    "mock": "node api/mock-server/server.js",
+    "test": "npm run test:api && npm run test:engine && npm run test:web"
+  },
+  "devDependencies": { "@playwright/test": "1.56.0" }
+}

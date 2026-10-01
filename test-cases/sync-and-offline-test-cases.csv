@@ -1,0 +1,25 @@
+ID,Area,Scenario,Preconditions,Steps,Expected result,Type,Priority,Automated
+SYNC-01,Sync/API,Two devices same localId School_1,Both offline surveys saved,Sync Ankit then Pooja,Two server records; no overwrite,Functional,P0,Yes (TC-API-01)
+SYNC-02,Sync/API,Exact-same-time sync,Two devices,Fire both requests in parallel,Both 201; both data sets intact,Concurrency,P0,Yes (TC-API-02)
+SYNC-03,Sync/API,Retry after timeout,First request reached server but response lost,Resend identical payload,200 duplicate_replayed same serverId; 1 row,Idempotency,P0,Yes (TC-API-03)
+SYNC-04,Sync/API,LocalId reuse with different data,Record exists,Send same localId different answers,207 conflict; original untouched,Negative,P0,Yes (TC-API-04)
+SYNC-05,Sync/API,Same school from 2 devices,None,Register same school name on 2 devices,Both stored; possibleDuplicateOf set; no silent merge,Data integrity,P1,Yes (TC-API-05)
+SYNC-06,Sync/API,Client-chosen serverId,Victim record exists,Send payload with victim serverId,New id issued; victim untouched,Security,P0,Yes (TC-API-06)
+SYNC-07,Sync/API,Partial batch failure,None,Batch of 3 with 1 invalid,207; 2 saved; 1 rejected with reason,Negative,P1,Yes (TC-API-07)
+SYNC-08,Sync/API,Thundering herd,None,300 parallel devices same localId,300 distinct rows; 0 lost,Load,P0,Yes (TC-API-14)
+SYNC-09,Sync/API,Burst throttling,Rate limit on,Exceed limit,429 + Retry-After; client backs off with jitter and succeeds,Resilience,P0,Yes (TC-API-15)
+SYNC-10,Sync/API,Unicode payload,None,Hindi/Kannada/emoji answers,Byte-exact round trip,Localization,P1,Yes (TC-API-13)
+SYNC-11,Sync/API,Auth missing/expired token,None,Send without/with bad token,401; app refreshes token and retries; data kept,Security,P1,Yes (TC-API-11)
+SYNC-12,Sync/API,Oversized payload / batch,None,51 surveys or >1MB,413; app splits batch and retries,Negative,P2,Yes (TC-API-12)
+SYNC-13,Sync/Mobile,Network drops at 99% of photo upload,Survey with 3MB photo,Throttle then cut network at ~99%,Upload resumes/restarts; no half-file on server; survey stays PENDING; no dup on retry,Resilience,P0,Manual+ADB
+SYNC-14,Sync/Mobile,Airplane mode toggled during sync,Pending surveys,Toggle airplane mid-sync,Worker retries later; rows not marked SYNCED early,Resilience,P0,Manual+ADB
+SYNC-15,Sync/Mobile,Server 500,Charles map-local 500,Sync,Row stays PENDING; retry_count+1; WorkManager backoff; no data loss,Resilience,P0,Manual (proxy)
+SYNC-16,Sync/Mobile,Server 200 but body truncated,Charles breakpoint,Cut response,App must NOT mark SYNCED without a valid ack,Resilience,P0,Manual (proxy)
+SYNC-17,Sync/Mobile,App killed mid-sync,Pending surveys,Force-stop during upload; relaunch,Work resumes; no duplicate; no corrupt row,Resilience,P0,Manual+ADB
+SYNC-18,Sync/Mobile,Reboot with pending work,Pending surveys,Reboot device,WorkManager reschedules; sync completes,Resilience,P1,Manual+ADB
+SYNC-19,Sync/Mobile,Doze / battery saver / data saver,Pending surveys,Enable Doze; wait,Sync runs in maintenance window; no crash,Compatibility,P1,Manual+ADB
+SYNC-20,Sync/Mobile,Low storage while saving,Storage <50MB,Save survey,Clear error; no partial row; draft not lost,Device constraint,P0,Manual+ADB
+SYNC-21,Sync/Mobile,Clock skew,Device date wrong,Create+sync survey,Server uses receivedAt too; ordering not corrupted,Data integrity,P2,Manual
+SYNC-22,Sync/Mobile,Schema version changed while offline,Old schema cached,Sync after builder publish,Payload carries schemaVersion; server accepts/maps,Compatibility,P1,Manual
+SYNC-23,Sync/Mobile,50k users same minute,Staging,Load test with k6 (1 POST/device) with jitter on/off,p95 < SLA; no 5xx spike; jitter flattens the spike,Load,P1,Tool: k6
+SYNC-24,Sync/Mobile,Local DB survives app update,Pending surveys,Update APK via adb install -r,Room migration keeps rows,Data integrity,P0,Manual+ADB

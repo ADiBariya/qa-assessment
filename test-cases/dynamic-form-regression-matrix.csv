@@ -1,0 +1,18 @@
+ID,Layer,Feature,What is checked,Automated?,Tool,Trigger
+DYN-01,Schema contract,Builder output validity,Every export parses and passes JSON-schema + lint (unique ids; targets exist and precede; ops known),Yes,schema-lint / ajv,Every builder PR
+DYN-02,Schema contract,Backward compat,Golden schemas from previous app versions still render with new app,Yes,Golden files + engine tests,Every app PR
+DYN-03,Engine,Visibility conditions,All 7 conditions x types x boundary values,Yes,Unit (node/JUnit),Every PR
+DYN-04,Engine,Chained skip,Hidden parent hides child; stale answers dropped,Yes,Unit,Every PR
+DYN-05,Engine,Validation,Range/regex/min/max/required incl. string coercion,Yes,Unit,Every PR
+DYN-06,Engine,HFC,See hfc-engine-test-plan.csv,Yes,Unit,Every PR
+DYN-07,Engine,Roster,Iteration count from Number question 0/1/N/max; shrink count keeps/removes rows per spec,Yes,Unit + instrumented,Every PR
+DYN-08,Render,Per input type (20),Each type renders + accepts input + saves value,Yes,Espresso/Compose test driven by fixture per type,Nightly
+DYN-09,Render,Skip logic on device,Data-driven: iterate every rule of every fixture,Yes,Espresso data-driven,Nightly
+DYN-10,Render,Web preview parity,Same fixture gives same visible-question set on web preview and Android,Yes,Playwright + Espresso dump compare,Nightly
+DYN-11,Persistence,Answer round trip,Fill -> kill app -> reopen -> values identical,Yes,Instrumented + Room,Nightly
+DYN-12,Persistence,Payload,Saved JSON contains only visible answers; ids + schemaVersion present,Yes,Instrumented,Every PR
+DYN-13,Visual,Layout regressions,Screenshot diff on 3 screen sizes + font scale 1.3,Partly,Paparazzi/Shot,Nightly
+DYN-14,Localization,4 languages,No truncation; option VALUE stable across languages,Partly,Pseudo-locale + manual,Release
+DYN-15,Exploratory,Real forms,Long forms (100+ q) on 4GB phone; rotate; interrupt with call; low battery,No,Manual charters,Release
+DYN-16,Exploratory,Odd builder combos,Skip logic on Matrix rows / Roster sub-questions / Audio audit / GPS,No,Manual charters,Per new builder feature
+DYN-17,Exploratory,Human factors,Readability in sunlight; touch targets; icon meaning with real users,No,Field session,Quarterly
